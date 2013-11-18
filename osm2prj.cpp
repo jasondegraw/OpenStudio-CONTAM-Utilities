@@ -31,8 +31,8 @@
 
 void usage( boost::program_options::options_description desc)
 {
-  std::cout << "Usage: OsmToPrj --input-path=./path/to/input.osm" << std::endl;
-  std::cout << "   or: OsmToPrj input.osm" << std::endl;
+  std::cout << "Usage: osm2prj --input-path=./path/to/input.osm" << std::endl;
+  std::cout << "   or: osm2prj input.osm" << std::endl;
   std::cout << desc << std::endl;
 }
 

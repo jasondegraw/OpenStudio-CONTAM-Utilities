@@ -107,3 +107,9 @@ TARGET_LINK_LIBRARIES( compinf
   ${${target_name}_depends}
 )
 
+add_executable(simplefitinf simplefitinf.cpp)
+
+TARGET_LINK_LIBRARIES( simplefitinf 
+  ${${target_name}_depends}
+)
+
