@@ -22,7 +22,7 @@ WTH file will be generated. The command line usage is as follows:
        or: osm2prj input.osm
     Allowed options:
       -f [ --flow ] arg       leakage flow rate per envelope area [m^3/h/m^2]
-      -h [ --help ]           print help message
+      -h [ --help ]           print help message and exit
       -i [ --input-path ] arg path to input OSM file
       -l [ --level ] arg      airtightness: Leaky|Average|Tight (default: Average)
       -q [ --quiet ]          suppress progress output
