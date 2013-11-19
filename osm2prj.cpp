@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 
   desc.add_options()
     ("flow,f", boost::program_options::value<double>(&flow), "leakage flow rate per envelope area [m^3/h/m^2]")
-    ("help,h", "print help message")
+    ("help,h", "print help message and exit")
     ("input-path,i", boost::program_options::value<std::string>(&inputPathString), "path to input OSM file")
     ("level,l", boost::program_options::value<std::string>(&leakageDescriptorString), "airtightness: Leaky|Average|Tight (default: Average)")
     ("quiet,q", "suppress progress output");

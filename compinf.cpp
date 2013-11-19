@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
   desc.add_options()
     ("flow,f", boost::program_options::value<double>(&flow), "leakage flow rate per envelope area [m^3/h/m^2]")
-    ("help,h", "print help message")
+    ("help,h", "print help message and exit")
     ("input-path,i", boost::program_options::value<std::string>(&inputPathString), "path to input OSM file")
     ("level,l", boost::program_options::value<std::string>(&leakageDescriptorString), "airtightness: Leaky|Average|Tight (default: Average)")
     ("quiet,q", "suppress progress output");
@@ -372,9 +372,9 @@ int main(int argc, char *argv[])
   std::vector<openstudio::TimeSeries> infiltration = translator->zoneInfiltration(&sim); // These are in kg/s
   // Create a schedule for each zone
   std::map<openstudio::Handle,int> map = translator->zoneMap();
-  // This approach implicitly requires that each space is a zone. There should be a way to distibute the infiltration so that when it 
-  // is all put together it adds up to the right thing. That would allow for more than one sapce in a zone - which needs to happen at
-  // some point.
+  // This approach implicitly requires that each space is a zone. There should be a way to distibute the infiltration 
+  // so that when it is all put together it adds up to the right thing. That would allow for more than one space in a 
+  // zone - which needs to happen at some point.
   std::vector<openstudio::model::Space> spaces = model->getConcreteModelObjects<openstudio::model::Space>();
   BOOST_FOREACH(openstudio::model::Space space, spaces)
   {
