@@ -113,3 +113,9 @@ TARGET_LINK_LIBRARIES( simplefitinf
   ${${target_name}_depends}
 )
 
+add_executable(epw2wth epw2wth.cpp)
+
+TARGET_LINK_LIBRARIES( epw2wth 
+  ${${target_name}_depends}
+)
+
