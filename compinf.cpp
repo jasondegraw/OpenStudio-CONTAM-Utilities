@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     needWth = false;
   }
 
-  openstudio::contam::ForwardTranslator *translator=0;
+  openstudio::contam::ForwardTranslator translator;
   if(setLevel)
   {
     QVector<std::string> known;
@@ -174,20 +174,27 @@ int main(int argc, char *argv[])
       std::cout << "Unknown airtightness level '" << leakageDescriptorString << "'" << std::endl;
       return EXIT_FAILURE;
     }
-    translator = new openstudio::contam::ForwardTranslator(model.get(),leakageDescriptorString,false);
+    translator.setAirtightnessLevel(leakageDescriptorString);
   }
   else
   {
-    translator = new openstudio::contam::ForwardTranslator(model.get(),flow,0.65,75.0,false);
+    translator.setExteriorFlowRate(flow,0.65,75.0);
   }
-  if(!translator->valid())
+  translator.setTranslateHVAC(false);
+  boost::optional<openstudio::contam::CxModel> cx = translator.translate(model.get());
+  if(!cx)
   {
      std::cout << "Translation failed, check errors and warnings for more information." << std::endl;
-     delete translator;
      return EXIT_FAILURE;
   }
+  if(!cx->valid())
+  {
+     std::cout << "Translation returned an invalid model, check errors and warnings for more information." << std::endl;
+     return EXIT_FAILURE;
+  }
+  
   // Since we really need this to be a transient case, bail out now if it is not
-  if(!translator->startDateTime() || !translator->endDateTime())
+  if(!translator.startDateTime() || !translator.endDateTime())
   {
     std::cout << "The translated model is a steady-state model, bailing out" << std::endl;
     return EXIT_FAILURE;
@@ -217,11 +224,11 @@ int main(int argc, char *argv[])
             {
               std::cout << "Failed to correctly load EPW file, weather will be steady state" << std::endl;
             }
-            translator->rc().setWTHpath(openstudio::toString(wthPath));
+            cx->rc().setWTHpath(openstudio::toString(wthPath));
           }
-          else if(epwFile = translator->translateEpw(*epwPath,wthPath))
+          else if(epwFile = translator.translateEpw(*epwPath,wthPath))
           {
-            translator->rc().setWTHpath(openstudio::toString(wthPath));
+            cx->rc().setWTHpath(openstudio::toString(wthPath));
           }
           else
           {
@@ -244,12 +251,12 @@ int main(int argc, char *argv[])
     }
 
     // Write out a CVF if needed
-    if(translator->writeCvFile(cvfPath))
+    if(translator.writeCvFile(cvfPath))
     {
       // Need to set the CVF file in the PRJ, this path may need to be made relative. Not too sure
-      translator->rc().setCVFpath(openstudio::toString(cvfPath));
+      cx->rc().setCVFpath(openstudio::toString(cvfPath));
     }
-    textStream << openstudio::toQString(translator->toString());
+    textStream << openstudio::toQString(cx->toString());
   }
   else
   {
@@ -331,10 +338,10 @@ int main(int argc, char *argv[])
     inf.remove();
   }
   // Set the default here in case the EpwFile route fails
-  openstudio::Time diff = translator->endDateTime().get()-translator->startDateTime().get();
+  openstudio::Time diff = translator.endDateTime().get()-translator.startDateTime().get();
   //std::cout << diff.days()*24 << std::endl;
-  double ssP = QString().fromStdString(translator->rc().ssWeather().Tambt()).toDouble(); // There's a better way to do this
-  double ssT = QString().fromStdString(translator->rc().ssWeather().barpres()).toDouble(); // There's a better way to do this
+  double ssP = QString().fromStdString(cx->rc().ssWeather().Tambt()).toDouble(); // There's a better way to do this
+  double ssT = QString().fromStdString(cx->rc().ssWeather().barpres()).toDouble(); // There's a better way to do this
   //std::cout << ssP << " " << ssT << std::endl;
   //std::vector<double> values(diff.days()*24,287.058*T/P);
   //openstudio::Vector oneOverDensity = openstudio::createVector(std::vector<double>(diff.days()*24,287.058*T/P));
@@ -369,9 +376,9 @@ int main(int argc, char *argv[])
     }
     */
   }
-  std::vector<openstudio::TimeSeries> infiltration = translator->zoneInfiltration(&sim); // These are in kg/s
+  std::vector<openstudio::TimeSeries> infiltration = cx->zoneInfiltration(&sim); // These are in kg/s
   // Create a schedule for each zone
-  std::map<openstudio::Handle,int> map = translator->zoneMap();
+  std::map<openstudio::Handle,int> map = translator.zoneMap();
   // This approach implicitly requires that each space is a zone. There should be a way to distibute the infiltration 
   // so that when it is all put together it adds up to the right thing. That would allow for more than one space in a 
   // zone - which needs to happen at some point.
@@ -403,7 +410,7 @@ int main(int argc, char *argv[])
     */
     openstudio::Time delta(0,1); // Do an hourly schedule
     std::vector<double> values;
-    for(openstudio::DateTime current=translator->startDateTime().get()+delta; current <= translator->endDateTime().get(); current += delta)
+    for(openstudio::DateTime current=translator.startDateTime().get()+delta; current <= translator.endDateTime().get(); current += delta)
     {
       double inf = zoneInfiltration.value(current); // This will be in kg/s
       double P = ssP;
@@ -417,7 +424,7 @@ int main(int argc, char *argv[])
       values.push_back(inf*287.058*T/P); // Compute m^3/s
     }
     // Make the time series
-    openstudio::TimeSeries infiltrationTimeSeries(translator->startDateTime()->date(),delta,openstudio::createVector(values),"");
+    openstudio::TimeSeries infiltrationTimeSeries(translator.startDateTime()->date(),delta,openstudio::createVector(values),"");
     //std::cout << infiltrationTimeSeries.firstReportDateTime().toString() << std::endl;
     // Make the schedule
     openstudio::model::ScheduleFixedInterval schedule(*model);

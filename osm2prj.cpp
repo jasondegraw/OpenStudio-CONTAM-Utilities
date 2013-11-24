@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
   openstudio::path cvfPath = inputPath.replace_extension(openstudio::toPath("cvf").string());
   openstudio::path wthPath = inputPath.replace_extension(openstudio::toPath("wth").string());
 
-  openstudio::contam::ForwardTranslator *translator=0;
+  openstudio::contam::ForwardTranslator translator;
   if(setLevel)
   {
     QVector<std::string> known;
@@ -156,18 +156,25 @@ int main(int argc, char *argv[])
       std::cout << "Unknown airtightness level '" << leakageDescriptorString << "'" << std::endl;
       return EXIT_FAILURE;
     }
-    translator = new openstudio::contam::ForwardTranslator(model.get(),leakageDescriptorString,returnSupplyRatio);
+    translator.setAirtightnessLevel(leakageDescriptorString);
   }
   else
   {
-    translator = new openstudio::contam::ForwardTranslator(model.get(),returnSupplyRatio,flow,0.65,75.0);
+    translator.setExteriorFlowRate(flow,0.65,75.0);
   }
-  if(!translator->valid())
+  translator.setReturnSupplyRatio(returnSupplyRatio);
+  boost::optional<openstudio::contam::CxModel> cx = translator.translate(model.get());
+  if(!cx)
   {
      std::cout << "Translation failed, check errors and warnings for more information." << std::endl;
-     delete translator;
      return EXIT_FAILURE;
   }
+  if(!cx->valid())
+  {
+     std::cout << "Translation returned an invalid model, check errors and warnings for more information." << std::endl;
+     return EXIT_FAILURE;
+  }
+
   QFile file(openstudio::toQString(prjPath));
   if(file.open(QFile::WriteOnly))
   {
@@ -182,9 +189,9 @@ int main(int argc, char *argv[])
         boost::optional<openstudio::path> epwPath = findFile(dir,openstudio::toString(path->string()));
         if(epwPath)
         {
-          if(translator->translateEpw(*epwPath,wthPath))
+          if(translator.translateEpw(*epwPath,wthPath))
           {
-            translator->rc().setWTHpath(openstudio::toString(wthPath));
+            cx->rc().setWTHpath(openstudio::toString(wthPath));
           }
           else
           {
@@ -207,12 +214,12 @@ int main(int argc, char *argv[])
     }
 
     // Write out a CVF if needed
-    if(translator->writeCvFile(cvfPath))
+    if(translator.writeCvFile(cvfPath))
     {
       // Need to set the CVF file in the PRJ, this path may need to be made relative. Not too sure
-      translator->rc().setCVFpath(openstudio::toString(cvfPath));
+      cx->rc().setCVFpath(openstudio::toString(cvfPath));
     }
-    textStream << openstudio::toQString(translator->toString());
+    textStream << openstudio::toQString(cx->toString());
   }
   else
   {

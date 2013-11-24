@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
   results << QVector<double>(nzones,0.0) << QVector<double>(nzones,0.0);
 
   // Translate the model
-  openstudio::contam::ForwardTranslator *translator=0;
+  openstudio::contam::ForwardTranslator translator;
   if(setLevel)
   {
     QVector<std::string> known;
@@ -176,21 +176,27 @@ int main(int argc, char *argv[])
       std::cout << "Unknown airtightness level '" << leakageDescriptorString << "'" << std::endl;
       return EXIT_FAILURE;
     }
-    translator = new openstudio::contam::ForwardTranslator(model.get(),leakageDescriptorString,false);
+    translator.setAirtightnessLevel(leakageDescriptorString);
   }
   else
   {
-    translator = new openstudio::contam::ForwardTranslator(model.get(),flow,0.65,75.0,false);
+    translator.setExteriorFlowRate(flow,0.65,75.0);
   }
-  if(!translator->valid())
+  translator.setTranslateHVAC(false);
+  boost::optional<openstudio::contam::CxModel> cx = translator.translate(model.get());
+  if(!cx)
   {
      std::cout << "Translation failed, check errors and warnings for more information." << std::endl;
-     delete translator;
+     return EXIT_FAILURE;
+  }
+  if(!cx->valid())
+  {
+     std::cout << "Translation returned an invalid model, check errors and warnings for more information." << std::endl;
      return EXIT_FAILURE;
   }
 
   // Set the model for steady-state simulation
-  translator->rc().setSim_af(0);
+  cx->rc().setSim_af(0);
 
   // If we have made it this far, we should be good to go - loop over the cases and run ContamX
   for(int i=0;i<speed.size();i++)
@@ -198,7 +204,7 @@ int main(int argc, char *argv[])
     for(int j=0;j<direction.size();j++)
     {
       // Set the wind speed and direction
-      translator->setSteadyWeather(speed[i],direction[j]);
+      cx->setSteadyWeather(speed[i],direction[j]);
       QString fileName = QString("temporary-%1-%2.prj").arg(speed[i]).arg(direction[j]);
 
       QFile file(fileName);
@@ -213,7 +219,7 @@ int main(int argc, char *argv[])
       {
         std::cout << "Writing file " << fileName.toStdString() << std::endl;
       }
-      boost::optional<std::string> output = translator->toString();
+      boost::optional<std::string> output = cx->toString();
       textStream << openstudio::toQString(*output);
       file.close();
       //
@@ -258,7 +264,7 @@ int main(int argc, char *argv[])
       openstudio::path simPath = openstudio::toPath(fileName.replace(".prj",".sim"));
       openstudio::contam::SimFile sim(simPath);
       // Use the convenience routine to figure out what is what
-      std::vector<openstudio::TimeSeries> infiltration = translator->zoneInfiltration(&sim);
+      std::vector<openstudio::TimeSeries> infiltration = cx->zoneInfiltration(&sim);
       if(infiltration.size() != nzones)
       {
         std::cout << "Failed to complete SimReadX process." << std::endl;
@@ -336,7 +342,7 @@ int main(int argc, char *argv[])
 
   // Build a map to the index - this will need to be changed significantly if we want more than one
   // space per zone.
-  std::map <openstudio::Handle, int> zoneMap = translator->zoneMap();
+  std::map <openstudio::Handle, int> zoneMap = translator.zoneMap();
   std::vector<openstudio::model::Space> spaces = model->getConcreteModelObjects<openstudio::model::Space>();
   std::map<openstudio::Handle,int> spaceMap;
   BOOST_FOREACH(openstudio::model::Space space, spaces)
