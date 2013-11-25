@@ -35,6 +35,11 @@ Coming soon
 
 Coming soon
 
+## epw2wth
+
+Convert an EPW file into the CONTAM WTH format. This is a stand-alone program that uses the same code that osm2prj uses
+to do the EPW conversion.
+
 ## Building the Programs
 
 The programs are built using CMake (2.8 or newer should probably work). After the first "configure", you'll probably
