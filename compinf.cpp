@@ -49,6 +49,31 @@ void usage( boost::program_options::options_description desc)
   std::cout << desc << std::endl;
 }
 
+boost::optional<openstudio::EpwFile> translateEpw(openstudio::path epwpath, openstudio::path outpath)
+{
+  boost::optional<openstudio::EpwFile> epw;
+  try
+  {
+    openstudio::EpwFile epwFile(epwpath,true);
+    try
+    {
+      epwFile.translateToWth(outpath);
+    }
+    catch(...) // Is this going to work?
+    {
+      std::cout << "Translation of EPW file failed, weather will be steady state" << std::endl;
+      return false;
+    }
+    epw = boost::optional<openstudio::EpwFile>(epwFile);
+  }
+  catch(...)
+  {
+    std::cout << "Failed to correctly load EPW file, weather will be steady state" << std::endl;
+    return false;
+  }
+  return epw;
+}
+
 static boost::optional<openstudio::path> findFile(openstudio::path base, std::string filename)
 {
   if(boost::filesystem::is_directory(base))
@@ -181,7 +206,7 @@ int main(int argc, char *argv[])
     translator.setExteriorFlowRate(flow,0.65,75.0);
   }
   translator.setTranslateHVAC(false);
-  boost::optional<openstudio::contam::PrjModel> cx = translator.translate(model.get());
+  boost::optional<openstudio::contam::PrjModel> cx = translator.translateModel(model.get());
   if(!cx)
   {
      std::cout << "Translation failed, check errors and warnings for more information." << std::endl;
@@ -226,7 +251,7 @@ int main(int argc, char *argv[])
             }
             cx->rc().setWTHpath(openstudio::toString(wthPath));
           }
-          else if(epwFile = translator.translateEpw(*epwPath,wthPath))
+          else if(epwFile = translateEpw(*epwPath,wthPath))
           {
             cx->rc().setWTHpath(openstudio::toString(wthPath));
           }
