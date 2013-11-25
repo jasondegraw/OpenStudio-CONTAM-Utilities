@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
     translator.setExteriorFlowRate(flow,0.65,75.0);
   }
   translator.setTranslateHVAC(false);
-  boost::optional<openstudio::contam::CxModel> cx = translator.translate(model.get());
+  boost::optional<openstudio::contam::PrjModel> cx = translator.translate(model.get());
   if(!cx)
   {
      std::cout << "Translation failed, check errors and warnings for more information." << std::endl;
@@ -351,8 +351,8 @@ int main(int argc, char *argv[])
   bool variableWeather = false;
   if(epwFile)
   {
-    boost::optional<openstudio::TimeSeries> optP = epwFile->timeSeries("Atmospheric Station Pressure");
-    boost::optional<openstudio::TimeSeries> optT = epwFile->timeSeries("Dry Bulb Temperature");
+    boost::optional<openstudio::TimeSeries> optP = epwFile->getTimeSeries("Atmospheric Station Pressure");
+    boost::optional<openstudio::TimeSeries> optT = epwFile->getTimeSeries("Dry Bulb Temperature");
     if(optP && optT)
     {
       variableWeather = true;
