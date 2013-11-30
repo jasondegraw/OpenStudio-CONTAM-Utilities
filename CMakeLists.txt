@@ -21,7 +21,7 @@ ENDIF()
 
 ## OpenStudio
 
-SET( OPENSTUDIO_BUILD_DIR "" CACHE STRING "Build or install directory for OpenStudio build to link against")
+SET( OPENSTUDIO_BUILD_DIR "" CACHE PATH "Build or install directory for OpenStudio build to link against")
 
 INCLUDE ( "${OPENSTUDIO_BUILD_DIR}/OpenStudioCore-prefix/src/OpenStudioCore-build/OpenStudioCoreConfig.cmake" )
 
