@@ -93,6 +93,14 @@ SET( ${target_name}_depends
   boost_log
 )
 
+# Resource files
+SET( ${target_name}_qrc
+  resources.qrc
+)
+
+# generate rules for building source files from the resources
+qt4_add_resources(${target_name}_qrcs ${${target_name}_qrc} )
+
 # Executables
 
 add_executable(osm2prj osm2prj.cpp)
@@ -119,3 +127,9 @@ TARGET_LINK_LIBRARIES( epw2wth
   ${${target_name}_depends}
 )
 
+add_executable(demomodel demomodel.cpp
+	${${target_name}_qrcs})
+
+TARGET_LINK_LIBRARIES( demomodel 
+  ${${target_name}_depends}
+)
