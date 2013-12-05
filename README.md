@@ -7,10 +7,10 @@ OpenStudio-based CONTAM Utility Programs
 
 A set of utility programs that use an input OpenStudio energy model to do various things with [CONTAM]
 (http://www.bfrl.nist.gov/IAQanalysis/). Currently, the programs will only build if you have also built a 
-[CONTAM-aware version of OpenStudio](https://github.com/jasondegraw/OpenStudio/tree/43144741_CONTAMTranslator).
-The utilities are described below. Be warned, however, that any PRJ files that are produced will not contain
-sketchpad information. ContamW will sometimes still load the model, but you mileage may vary. The best use
-of the models is probably with ContamX via the command line.
+[recent version of OpenStudio](https://github.com/NREL/OpenStudio). The utilities are described below. Be 
+warned, however, that any PRJ files that are produced will not contain sketchpad information. ContamW will
+sometimes still load the model, but you mileage may vary. The best use of the models is probably with
+ContamX via the command line.
 
 ## osm2prj
 
