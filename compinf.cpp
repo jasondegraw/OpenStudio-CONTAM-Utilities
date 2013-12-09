@@ -108,9 +108,11 @@ int main(int argc, char *argv[])
   double flow=27.1;
   double returnSupplyRatio=1.0;
   bool setLevel = true;
+  bool writeCsv = false;
   boost::program_options::options_description desc("Allowed options");
 
   desc.add_options()
+    ("csv,c", "write out descriptive csv files")
     ("flow,f", boost::program_options::value<double>(&flow), "leakage flow rate per envelope area [m^3/h/m^2]")
     ("help,h", "print help message and exit")
     ("input-path,i", boost::program_options::value<std::string>(&inputPathString), "path to input OSM file")
@@ -155,6 +157,11 @@ int main(int argc, char *argv[])
   {
     // Probably should do a sanity check of input - but maybe later
     setLevel = false;
+  }
+
+  if(vm.count("csv"))
+  {
+    writeCsv = true;
   }
   
   // Open the model
@@ -444,7 +451,10 @@ int main(int argc, char *argv[])
       {
         P = seriesP.value(current);
         T = seriesT.value(current) + 273.15;
-        //std::cout << current.toString() << " " << inf << " " << P << " " << T << std::endl;
+        if(writeCsv)
+        {
+          std::cout << current.toString() << " " << inf << " " << inf*287.058*T/P << " " << P << " " << T << std::endl;
+        }
       }
       values.push_back(inf*287.058*T/P); // Compute m^3/s
     }
