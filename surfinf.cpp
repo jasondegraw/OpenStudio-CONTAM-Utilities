@@ -418,16 +418,59 @@ int main(int argc, char *argv[])
   // Figure out what surfaces we want results for
   std::vector<openstudio::model::Surface> extSurfaces = filterConcreteModelObjects<openstudio::model::Surface>(*model, attachedExterior);
   std::cout << "Found " << extSurfaces.size() << " exterior surfaces" << std::endl;
+  // Create the vector of path numbers
+  std::vector<int> pathNrs;
+  std::map<openstudio::Handle,int> map = translator.surfaceMap();
+  BOOST_FOREACH(openstudio::model::Surface surface, extSurfaces)
+  {
+    std::map<openstudio::Handle,int>::const_iterator iter = map.find(surface.handle());
+    if(iter != map.end())
+    {
+      pathNrs.push_back(iter->second);
+    }
+  }
+  std::cout << "Found " << pathNrs.size() << " exterior path numbers" << std::endl;
+   // Bail out if an exterior surface doesn't have an associated path
+  if(extSurfaces.size() != pathNrs.size())
+  {
+    std::cout << "One or more exterior surfaces does not have a CONTAM path, bailing out" << std::endl;
+    return EXIT_FAILURE;
+  }
 
+  std::vector<openstudio::TimeSeries> infiltration = cx->pathInfiltration(pathNrs,&sim); // These are in kg/s
+
+  // This is probably a mistake, but make an infiltration vector for each space (assume hourly)
+  openstudio::Time delta(0,1); // Do an hourly schedule
+  std::vector<openstudio::TimeSeries> ts;
+  std::map<openstudio::Handle,int> spaceMap;
+  std::vector<openstudio::model::Space> spaces = model->getConcreteModelObjects<openstudio::model::Space>();
+  int i=0;
+  BOOST_FOREACH(openstudio::model::Space space, spaces)
+  {
+    ts.push_back(openstudio::TimeSeries(translator.startDateTime().get(),delta,
+      openstudio::createVector(std::vector<double>(8760,0.0)),""));
+    spaceMap[space.handle()] = i;
+    i++;
+  }
+
+  // The next part should work, provided that TimeSeries acts like I think it should
+  // Step through the list of exterior surfaces and add in infiltration into each space
+  for(unsigned i=0;i<extSurfaces.size();i++)
+  {
+    openstudio::model::Surface surface = extSurfaces[i];
+    boost::optional<openstudio::model::Space> space = surface.space();
+    // Not going to do a check here - it should have a space if it made it through the filter
+    int spaceIndex = spaceMap[space.get().handle()];
+    ts[spaceIndex] = ts[spaceIndex] + infiltration[i];
+  }
   return EXIT_SUCCESS;
 
-  std::vector<openstudio::TimeSeries> infiltration = cx->zoneInfiltration(&sim); // These are in kg/s
   // Create a schedule for each zone
-  std::map<openstudio::Handle,int> map = translator.zoneMap();
+  //std::map<openstudio::Handle,int> map = translator.zoneMap();
   // This approach implicitly requires that each space is a zone. There should be a way to distibute the infiltration 
   // so that when it is all put together it adds up to the right thing. That would allow for more than one space in a 
   // zone - which needs to happen at some point.
-  std::vector<openstudio::model::Space> spaces = model->getConcreteModelObjects<openstudio::model::Space>();
+  //std::vector<openstudio::model::Space> spaces = model->getConcreteModelObjects<openstudio::model::Space>();
   BOOST_FOREACH(openstudio::model::Space space, spaces)
   {
     boost::optional<openstudio::model::ThermalZone> zone = space.thermalZone();
@@ -453,7 +496,7 @@ int main(int argc, char *argv[])
       //if(i==20)exit(0);
     }
     */
-    openstudio::Time delta(0,1); // Do an hourly schedule
+    //openstudio::Time delta(0,1); // Do an hourly schedule
     std::vector<double> values;
     for(openstudio::DateTime current=translator.startDateTime().get()+delta; current <= translator.endDateTime().get(); current += delta)
     {
