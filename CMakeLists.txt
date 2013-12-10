@@ -133,3 +133,9 @@ add_executable(demomodel demomodel.cpp
 TARGET_LINK_LIBRARIES( demomodel 
   ${${target_name}_depends}
 )
+
+add_executable(surfinf surfinf.cpp)
+
+TARGET_LINK_LIBRARIES( surfinf
+  ${${target_name}_depends}
+)
