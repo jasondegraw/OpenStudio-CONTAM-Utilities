@@ -41,6 +41,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 
 void usage( boost::program_options::options_description desc)
 {
@@ -408,6 +409,16 @@ int main(int argc, char *argv[])
     }
     */
   }
+  // Open up a csv file if we need it
+  std::ofstream csv;
+  if(writeCsv)
+  {
+    csv.open("computed-infiltration.csv",std::ofstream::out);
+    if(csv.bad())
+    {
+      writeCsv = false;
+    }
+  }
   std::vector<openstudio::TimeSeries> infiltration = cx->zoneInfiltration(&sim); // These are in kg/s
   // Create a schedule for each zone
   std::map<openstudio::Handle,int> map = translator.zoneMap();
@@ -453,7 +464,7 @@ int main(int argc, char *argv[])
         T = seriesT.value(current) + 273.15;
         if(writeCsv)
         {
-          std::cout << current.toString() << " " << inf << " " << inf*287.058*T/P << " " << P << " " << T << std::endl;
+          csv << current.toString() << "," << inf << "," << inf*287.058*T/P << "," << P << "," << T << std::endl;
         }
       }
       values.push_back(inf*287.058*T/P); // Compute m^3/s
@@ -472,29 +483,17 @@ int main(int argc, char *argv[])
     infObj.setSchedule(schedule);
   }
 
-  //std::cout << seriesP.firstReportDateTime().toString() << std::endl;
-  //std::cout << seriesT.firstReportDateTime().toString() << std::endl;
-  //std::cout << translator->startDateTime().get().toString() << std::endl;
+  if(writeCsv)
+  {
+    csv.close();
+  }
 
-  //openstudio::model::ScheduleFixedInterval schedule(*model);
-  //schedule.setTimeSeries(infiltration[0]);
   openstudio::path outPath = openstudio::toPath(outputPathString);
   if(!model->save(outPath,true))
   {
     std::cout << "Failed to write OSM file." << std::endl;
     return EXIT_FAILURE;
   }
-  /*
-  std::cout << infiltration.size() << std::endl;
-  openstudio::Vector values = infiltration[0].values();
-  openstudio::Vector daysFrom = infiltration[0].daysFromFirstReport();
-  for(unsigned int i=0;i<values.size();i++)
-  {
-    std::cout << i << '\t' << daysFrom[i] << '\t' << values[i] << std::endl;
-  }
-  */
-  // The details on what we should do with these maps are still unclear
-  // openstudio::path mapPath = inputPath.replace_extension(openstudio::toPath("map").string());
-  // translator.writeMaps(mapPath);
+
   return EXIT_SUCCESS;
 }

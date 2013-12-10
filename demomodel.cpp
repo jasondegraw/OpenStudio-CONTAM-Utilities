@@ -339,6 +339,22 @@ int main(int argc, char *argv[])
   //}
   openstudio::model::Model model = optionalModel.get();
 
+  optionalModel = buildDemoModel(model);
+
+  if(optionalModel)
+  {
+    if(!optionalModel->save(openstudio::toPath(outputPathString),true))
+    {
+      std::cout << "Failed to write OSM file." << std::endl;
+      return EXIT_FAILURE;
+    }
+  }
+  else
+  {
+    std::cout << "Failed to build OpenStudio model." << std::endl;
+    return EXIT_FAILURE;
+  }
+
   //if(!model)
   //{
   //  std::cout << "Unable to load file '"<< inputPathString << "' as an OpenStudio model." << std::endl;
