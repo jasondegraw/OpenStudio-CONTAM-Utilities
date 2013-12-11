@@ -30,6 +30,7 @@
 #include <model/WeatherFile.hpp>
 #include <model/ScheduleFixedInterval.hpp>
 #include <osversion/VersionTranslator.hpp>
+
 #include <utilities/core/CommandLine.hpp>
 #include <utilities/core/Path.hpp>
 #include <utilities/sql/SqlFile.hpp>
@@ -38,6 +39,10 @@
 #include <model/SpaceInfiltrationDesignFlowRate_Impl.hpp>
 #include <model/SpaceInfiltrationEffectiveLeakageArea.hpp>
 #include <model/SpaceInfiltrationEffectiveLeakageArea_Impl.hpp>
+ 
+#include <energyplus/ForwardTranslator.hpp>
+//#include <utilities/idf/Workspace.hpp>
+//#include <utilities/idf/IdfFile.hpp>
 
 #include <QProcess>
 
@@ -461,96 +466,39 @@ int main(int argc, char *argv[])
     boost::optional<openstudio::model::Space> space = surface.space();
     // Not going to do a check here - it should have a space if it made it through the filter
     int spaceIndex = spaceMap[space.get().handle()];
-    ts[spaceIndex] = ts[spaceIndex] + infiltration[i];
+    ts[spaceIndex] = infiltration[i]; // ts[spaceIndex] + infiltration[i];
   }
-  return EXIT_SUCCESS;
 
-  // Create a schedule for each zone
-  //std::map<openstudio::Handle,int> map = translator.zoneMap();
-  // This approach implicitly requires that each space is a zone. There should be a way to distibute the infiltration 
-  // so that when it is all put together it adds up to the right thing. That would allow for more than one space in a 
-  // zone - which needs to happen at some point.
-  //std::vector<openstudio::model::Space> spaces = model->getConcreteModelObjects<openstudio::model::Space>();
+  // Loop through the spaces and create schedules
   BOOST_FOREACH(openstudio::model::Space space, spaces)
   {
-    boost::optional<openstudio::model::ThermalZone> zone = space.thermalZone();
-    if(!zone)
+    std::map<openstudio::Handle,int>::const_iterator iter = spaceMap.find(space.handle());
+    if(iter != spaceMap.end())
     {
-      std::cout << "Space '" << openstudio::toString(space.handle()) << "' has no attached thermal zone." << std::endl;
-      continue;
+      // Make a schedule
+      openstudio::model::ScheduleFixedInterval schedule(*model);
+      schedule.setTimeSeries(ts[iter->second]);
+      // Make an infiltration object and attach it to the space
+      openstudio::model::SpaceInfiltrationDesignFlowRate infObj(*model);
+      infObj.setDesignFlowRate(1.0);
+      infObj.setConstantTermCoefficient(1.0);
+      infObj.setSpace(space);
+      infObj.setSchedule(schedule);
     }
-    if(map.count(zone->handle()) == 0)
-    {
-      std::cout << "Zone '" << openstudio::toString(zone->handle()) << "' has no associated CONTAM zone." << std::endl;
-      continue;
-    }
-    openstudio::TimeSeries zoneInfiltration = infiltration[map[zone->handle()]-1];
-    /*
-    std::cout << zoneInfiltration.value(0) << std::endl;
-    openstudio::DateTime dt(openstudio::Date(1,1),openstudio::Time(0,2));
-    std::cout << dt.toString() << " " << zoneInfiltration.value(dt) << std::endl;
-    std::cout << zoneInfiltration.firstReportDateTime().toString() << std::endl;
-    for(unsigned i=0;i<zoneInfiltration.values().size();i++)
-    {
-      std::cout << zoneInfiltration.values()[i] << std::endl;
-      //if(i==20)exit(0);
-    }
-    */
-    //openstudio::Time delta(0,1); // Do an hourly schedule
-    std::vector<double> values;
-    for(openstudio::DateTime current=translator.startDateTime().get()+delta; current <= translator.endDateTime().get(); current += delta)
-    {
-      double inf = zoneInfiltration.value(current); // This will be in kg/s
-      double P = ssP;
-      double T = ssT;
-      if(variableWeather)
-      {
-        P = seriesP.value(current);
-        T = seriesT.value(current) + 273.15;
-        if(writeCsv)
-        {
-          std::cout << current.toString() << " " << inf << " " << inf*287.058*T/P << " " << P << " " << T << std::endl;
-        }
-      }
-      values.push_back(inf*287.058*T/P); // Compute m^3/s
-    }
-    // Make the time series
-    openstudio::TimeSeries infiltrationTimeSeries(translator.startDateTime()->date(),delta,openstudio::createVector(values),"");
-    //std::cout << infiltrationTimeSeries.firstReportDateTime().toString() << std::endl;
-    // Make the schedule
-    openstudio::model::ScheduleFixedInterval schedule(*model);
-    schedule.setTimeSeries(infiltrationTimeSeries);
-
-    openstudio::model::SpaceInfiltrationDesignFlowRate infObj(*model);
-    infObj.setDesignFlowRate(1.0);
-    infObj.setConstantTermCoefficient(1.0);
-    infObj.setSpace(space);
-    infObj.setSchedule(schedule);
   }
 
-  //std::cout << seriesP.firstReportDateTime().toString() << std::endl;
-  //std::cout << seriesT.firstReportDateTime().toString() << std::endl;
-  //std::cout << translator->startDateTime().get().toString() << std::endl;
-
-  //openstudio::model::ScheduleFixedInterval schedule(*model);
-  //schedule.setTimeSeries(infiltration[0]);
+  // Write out the model
   openstudio::path outPath = openstudio::toPath(outputPathString);
   if(!model->save(outPath,true))
   {
     std::cout << "Failed to write OSM file." << std::endl;
     return EXIT_FAILURE;
   }
-  /*
-  std::cout << infiltration.size() << std::endl;
-  openstudio::Vector values = infiltration[0].values();
-  openstudio::Vector daysFrom = infiltration[0].daysFromFirstReport();
-  for(unsigned int i=0;i<values.size();i++)
-  {
-    std::cout << i << '\t' << daysFrom[i] << '\t' << values[i] << std::endl;
-  }
-  */
-  // The details on what we should do with these maps are still unclear
-  // openstudio::path mapPath = inputPath.replace_extension(openstudio::toPath("map").string());
-  // translator.writeMaps(mapPath);
+
+  openstudio::path idfPath = inputPath.replace_extension(openstudio::toPath("idf").string());
+  openstudio::energyplus::ForwardTranslator forwardTranslator;
+  openstudio::Workspace workspace =  forwardTranslator.translateModel(*model);
+  workspace.toIdfFile().save(idfPath, true);
+
   return EXIT_SUCCESS;
 }

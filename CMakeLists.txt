@@ -90,6 +90,7 @@ SET( ${target_name}_depends
   openstudio_model
   openstudio_osversion
   openstudio_contam
+  openstudio_energyplus
   boost_log
 )
 
