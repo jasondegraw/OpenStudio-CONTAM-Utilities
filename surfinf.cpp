@@ -145,7 +145,7 @@ static boost::optional<openstudio::path> findFile(openstudio::path base, std::st
 int main(int argc, char *argv[])
 {
   std::string inputPathString;
-  std::string outputPathString = "scheduled-infiltration.osm";
+  std::string outputPathString = "surface-infiltration.osm";
   std::string leakageDescriptorString="Average";
   double flow=27.1;
   double returnSupplyRatio=1.0;
@@ -402,9 +402,6 @@ int main(int argc, char *argv[])
   //std::cout << diff.days()*24 << std::endl;
   double ssP = QString().fromStdString(cx->rc().ssWeather().Tambt()).toDouble(); // There's a better way to do this
   double ssT = QString().fromStdString(cx->rc().ssWeather().barpres()).toDouble(); // There's a better way to do this
-  //std::cout << ssP << " " << ssT << std::endl;
-  //std::vector<double> values(diff.days()*24,287.058*T/P);
-  //openstudio::Vector oneOverDensity = openstudio::createVector(std::vector<double>(diff.days()*24,287.058*T/P));
   // Try to get the outdoor conditions
   openstudio::TimeSeries seriesP;
   openstudio::TimeSeries seriesT;
@@ -435,7 +432,7 @@ int main(int argc, char *argv[])
     }
   }
   std::cout << "Found " << pathNrs.size() << " exterior path numbers" << std::endl;
-   // Bail out if an exterior surface doesn't have an associated path
+  // Bail out if an exterior surface doesn't have an associated path
   if(extSurfaces.size() != pathNrs.size())
   {
     std::cout << "One or more exterior surfaces does not have a CONTAM path, bailing out" << std::endl;
@@ -444,7 +441,7 @@ int main(int argc, char *argv[])
 
   std::vector<openstudio::TimeSeries> infiltration = cx->pathInfiltration(pathNrs,&sim); // These are in kg/s
 
-  // This is probably a mistake, but make an infiltration vector for each space (assume hourly)
+  // This is probably a mistake, but make an infiltration vector for each space
   openstudio::Time delta(0,1); // Do an hourly schedule
   std::vector<openstudio::TimeSeries> ts;
   std::map<openstudio::Handle,int> spaceMap;
@@ -458,7 +455,7 @@ int main(int argc, char *argv[])
     i++;
   }
 
-  // The next part should work, provided that TimeSeries acts like I think it should
+  // The next part should work, provided that TimeSeries objects act like I think they should
   // Step through the list of exterior surfaces and add in infiltration into each space
   for(unsigned i=0;i<extSurfaces.size();i++)
   {
@@ -466,7 +463,39 @@ int main(int argc, char *argv[])
     boost::optional<openstudio::model::Space> space = surface.space();
     // Not going to do a check here - it should have a space if it made it through the filter
     int spaceIndex = spaceMap[space.get().handle()];
-    ts[spaceIndex] = infiltration[i]; // ts[spaceIndex] + infiltration[i];
+    ts[spaceIndex] = ts[spaceIndex] + infiltration[i];
+  }
+
+  if(writeCsv)
+  {
+    std::ofstream csv;
+    csv.open("surface-infiltration.csv",std::ofstream::out);
+    if(csv.good())
+    {
+      for(unsigned i=0;i<ts.size();i++)
+      {
+        csv << "," << spaces[i].name().get();
+      }
+      csv << std::endl;
+      for(openstudio::DateTime current=translator.startDateTime().get()+delta; current <= translator.endDateTime().get(); current += delta)
+      {
+        double P = ssP;
+        double T = ssT;
+        if(variableWeather)
+        {
+          P = seriesP.value(current);
+          T = seriesT.value(current) + 273.15;
+        }
+        csv << current.toString();
+        for(unsigned i=0;i<ts.size();i++)
+        {
+          double inf = ts[i].value(current); // This will be in kg/s
+          csv << "," << inf*287.058*T/P; // Convert to m^3/s
+        }
+        csv << std::endl;
+      }
+      csv.close();
+    }
   }
 
   // Loop through the spaces and create schedules
@@ -475,9 +504,28 @@ int main(int argc, char *argv[])
     std::map<openstudio::Handle,int>::const_iterator iter = spaceMap.find(space.handle());
     if(iter != spaceMap.end())
     {
+      openstudio::Time delta(0,1); // Do hourly values, but we won't assume 8760
+      std::vector<double> values;
+      for(openstudio::DateTime current=translator.startDateTime().get()+delta; current <= translator.endDateTime().get(); current += delta)
+      {
+        double inf = ts[iter->second].value(current); // This will be in kg/s
+        double P = ssP;
+        double T = ssT;
+        if(variableWeather)
+        {
+          P = seriesP.value(current);
+          T = seriesT.value(current) + 273.15;
+        }
+        values.push_back(inf*287.058*T/P); // Compute m^3/s.
+      }
+
       // Make a schedule
       openstudio::model::ScheduleFixedInterval schedule(*model);
-      schedule.setTimeSeries(ts[iter->second]);
+      if(!schedule.setTimeSeries(openstudio::TimeSeries(translator.startDateTime()->date(),delta,openstudio::createVector(values),"")))
+      {
+        std::cout << "Failed to set time series for schedule." << std::endl;
+        //return EXIT_FAILURE;
+      }
       // Make an infiltration object and attach it to the space
       openstudio::model::SpaceInfiltrationDesignFlowRate infObj(*model);
       infObj.setDesignFlowRate(1.0);
