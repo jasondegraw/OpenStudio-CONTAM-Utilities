@@ -40,7 +40,7 @@
 #include <model/SpaceInfiltrationEffectiveLeakageArea.hpp>
 #include <model/SpaceInfiltrationEffectiveLeakageArea_Impl.hpp>
  
-#include <energyplus/ForwardTranslator.hpp>
+//#include <energyplus/ForwardTranslator.hpp>
 //#include <utilities/idf/Workspace.hpp>
 //#include <utilities/idf/IdfFile.hpp>
 
@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
   BOOST_FOREACH(openstudio::model::Space space, spaces)
   {
     ts.push_back(openstudio::TimeSeries(translator.startDateTime().get(),delta,
-      openstudio::createVector(std::vector<double>(8760,0.0)),""));
+      openstudio::createVector(std::vector<double>(8760,0.0)),"kg/s"));
     spaceMap[space.handle()] = i;
     i++;
   }
@@ -465,6 +465,13 @@ int main(int argc, char *argv[])
     int spaceIndex = spaceMap[space.get().handle()];
     ts[spaceIndex] = ts[spaceIndex] + infiltration[i];
   }
+
+  //for(unsigned i=0;i<ts.size();i++)
+  //{
+  //  std::cout << ts[i].values().size() << std::endl;
+  //}
+
+  //return EXIT_FAILURE;
 
   if(writeCsv)
   {
@@ -543,10 +550,10 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  openstudio::path idfPath = inputPath.replace_extension(openstudio::toPath("idf").string());
-  openstudio::energyplus::ForwardTranslator forwardTranslator;
-  openstudio::Workspace workspace =  forwardTranslator.translateModel(*model);
-  workspace.toIdfFile().save(idfPath, true);
+  //openstudio::path idfPath = inputPath.replace_extension(openstudio::toPath("idf").string());
+  //openstudio::energyplus::ForwardTranslator forwardTranslator;
+  //openstudio::Workspace workspace =  forwardTranslator.translateModel(*model);
+  //workspace.toIdfFile().save(idfPath, true);
 
   return EXIT_SUCCESS;
 }
