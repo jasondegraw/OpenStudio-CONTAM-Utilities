@@ -12,6 +12,20 @@ warned, however, that any PRJ files that are produced will not contain sketchpad
 sometimes still load the model, but you mileage may vary. The best use of the models is probably with
 ContamX via the command line.
 
+## compinf
+
+Coming soon
+
+## demomodel
+
+Create the simple demo model that is used in some of the OpenStudio testing. It is a pretty simple model with
+four zones, one of which is unconditioned.
+
+## epw2wth
+
+Convert an EPW file into the CONTAM WTH format. This is a stand-alone program that uses the same code that osm2prj uses
+to do the EPW conversion.
+
 ## osm2prj
 
 Translate an OpenStudio model into a CONTAM model. If the program can find EnergyPlus simulation results, then
@@ -27,18 +41,10 @@ WTH file will be generated. The command line usage is as follows:
       -l [ --level ] arg      airtightness: Leaky|Average|Tight (default: Average)
       -q [ --quiet ]          suppress progress output
 
-## compinf
-
-Coming soon
 
 ## simplefitinf
 
 Coming soon
-
-## epw2wth
-
-Convert an EPW file into the CONTAM WTH format. This is a stand-alone program that uses the same code that osm2prj uses
-to do the EPW conversion.
 
 ## Building the Programs
 
