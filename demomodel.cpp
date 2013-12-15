@@ -54,10 +54,12 @@ void usage( boost::program_options::options_description desc)
   std::cout << desc << std::endl;
 }
 
+/*
 inline openstudio::path contamTemplatePath()
 {
   return openstudio::toPath("CONTAMTemplate.osm");
 }
+*/
 
 boost::optional<openstudio::model::Model> buildDemoModel(openstudio::model::Model model)
 {
@@ -259,8 +261,8 @@ int main(int argc, char *argv[])
   desc.add_options()
     ("help,h", "print help message and exit")
     ("input-path,i", boost::program_options::value<std::string>(&inputPathString), "path to template OSM file")
-    ("output-path,o", boost::program_options::value<std::string>(&outputPathString), "path to write OSM file to")
-    ("quiet,q", "suppress progress output");
+    ("output-path,o", boost::program_options::value<std::string>(&outputPathString), "path to write OSM file to");
+    //("quiet,q", "suppress progress output");
 
   boost::program_options::positional_options_description pos;
   //pos.add("input-path", -1);  // Maybe make the output path positional?

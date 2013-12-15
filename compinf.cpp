@@ -341,24 +341,8 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
   std::cout << "Successfully ran SimReadX" << std::endl;
-  //
   // Read in the results
-  //
   openstudio::contam::SimFile sim(simPath);
-  /*
-  std::cout << sim.F0().size() << std::endl;
-  std::cout << sim.F1().size() << std::endl;
-  std::vector<std::vector<int> > extPaths = translator->zoneExteriorFlowPaths();
-  for(unsigned int i=0;i<extPaths.size();i++)
-  {
-    std::cout << i+1 << " ";
-    for(unsigned int j=0;j<extPaths[i].size();j++)
-    {
-      std::cout << extPaths[i][j] << " ";
-    }
-    std::cout << std::endl;
-  }
-  */
   // Remove previous infiltration objects
   std::vector<openstudio::model::SpaceInfiltrationDesignFlowRate> dfrInf = model->getConcreteModelObjects<openstudio::model::SpaceInfiltrationDesignFlowRate>();
   BOOST_FOREACH(openstudio::model::SpaceInfiltrationDesignFlowRate inf, dfrInf)
@@ -375,9 +359,6 @@ int main(int argc, char *argv[])
   //std::cout << diff.days()*24 << std::endl;
   double ssP = QString().fromStdString(cx->rc().ssWeather().Tambt()).toDouble(); // There's a better way to do this
   double ssT = QString().fromStdString(cx->rc().ssWeather().barpres()).toDouble(); // There's a better way to do this
-  //std::cout << ssP << " " << ssT << std::endl;
-  //std::vector<double> values(diff.days()*24,287.058*T/P);
-  //openstudio::Vector oneOverDensity = openstudio::createVector(std::vector<double>(diff.days()*24,287.058*T/P));
   // Try to get the outdoor conditions
   openstudio::TimeSeries seriesP;
   openstudio::TimeSeries seriesT;
@@ -392,22 +373,6 @@ int main(int argc, char *argv[])
       seriesP = optP.get();
       seriesT = optT.get();
     }
-    //std::vector<double>
-    /*
-    if(optP && optT)
-    {
-      // For maximum safety, use interpolation to paper over any missing data
-      openstudio::Time delta(0,1); // Do an hourly schedule
-      std::vector<double> values;
-      for(openstudio::DateTime current=translator->startDateTime().get()+delta; current <= translator->endDateTime().get(); current += delta)
-      {
-        P = optP.get().value(current);
-        T = optT.get().value(current) + 273.15;
-        values.push_back(287.058*T/P);
-      }
-      oneOverDensity = openstudio::createVector(values);
-    }
-    */
   }
   // Open up a csv file if we need it
   std::ofstream csv;

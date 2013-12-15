@@ -116,12 +116,15 @@ boost::optional<openstudio::EpwFile> translateEpw(openstudio::path epwpath, open
   return epw;
 }
 
-static boost::optional<openstudio::path> findFile(openstudio::path base, std::string filename)
+static boost::optional<openstudio::path> findFile(openstudio::path base, std::string filename, bool verbose=false)
 {
   if(boost::filesystem::is_directory(base))
   {
     openstudio::path filepath = base / openstudio::toPath(filename);
-    std::cout<<"Looking for "<<openstudio::toString(filepath)<<std::endl;
+    if(verbose)
+    {
+      std::cout<<"Looking for "<<openstudio::toString(filepath)<<std::endl;
+    }
     if(boost::filesystem::exists(filepath))
     {
       return boost::optional<openstudio::path>(filepath);
@@ -132,7 +135,7 @@ static boost::optional<openstudio::path> findFile(openstudio::path base, std::st
     boost::filesystem::directory_iterator end;
     for(;iter!=end;++iter)
     {
-      boost::optional<openstudio::path> optional = findFile(openstudio::toPath(iter->path().string()),filename);
+      boost::optional<openstudio::path> optional = findFile(openstudio::toPath(iter->path().string()),filename,verbose);
       if(optional)
       {
         return optional;
@@ -151,6 +154,7 @@ int main(int argc, char *argv[])
   double returnSupplyRatio=1.0;
   bool setLevel = true;
   bool writeCsv = false;
+  bool verbose = true;
   boost::program_options::options_description desc("Allowed options");
 
   desc.add_options()
@@ -205,6 +209,11 @@ int main(int argc, char *argv[])
   {
     writeCsv = true;
   }
+
+  if(vm.count("quiet"))
+  {
+    verbose = false;
+  }
   
   // Open the model
   openstudio::path inputPath = openstudio::toPath(inputPathString);
@@ -220,10 +229,13 @@ int main(int argc, char *argv[])
   // Try to find and connect a results file - this really should be done using the RunManager database,
   // but I don't know how to do that and it can be done right at a later date by someone who knows how
   openstudio::path dir = inputPath.parent_path() / inputPath.stem();
-  boost::optional<openstudio::path> sqlpath = findFile(dir,"eplusout.sql");
+  boost::optional<openstudio::path> sqlpath = findFile(dir,"eplusout.sql",verbose);
   if(sqlpath)
   {
-    std::cout<<"Found results file, attaching it to the model."<<std::endl;
+    if(verbose)
+    {
+      std::cout<<"Found results file, attaching it to the model."<<std::endl;
+    }
     model->setSqlFile(openstudio::SqlFile(*sqlpath));
   }
 
@@ -285,7 +297,7 @@ int main(int argc, char *argv[])
       boost::optional<openstudio::path> path = weatherFile->path();
       if(path)
       {
-        boost::optional<openstudio::path> epwPath = findFile(dir,openstudio::toString(path->string()));
+        boost::optional<openstudio::path> epwPath = findFile(dir,openstudio::toString(path->string()),verbose);
         if(epwPath)
         {
           if(!needWth)
@@ -346,7 +358,10 @@ int main(int argc, char *argv[])
   //
   // Run CONTAM on the PRJ file
   //
-  std::cout << "Running CONTAM simulation" << std::endl;
+  if(verbose)
+  {
+    std::cout << "Running CONTAM simulation" << std::endl;
+  }
   // Ugly hard code
   openstudio::path contamExe = openstudio::toPath("C:\\Program Files (x86)\\NIST\\CONTAM 3.1\\ContamX3.exe");
   openstudio::path simreadxExe = openstudio::toPath("C:\\Users\\jwd131\\Software\\CONTAM\\simreadx.exe");
@@ -365,7 +380,10 @@ int main(int argc, char *argv[])
     std::cout << "Failed to complete ContamX process." << std::endl;
     return EXIT_FAILURE;
   }
-  std::cout << "Successfully ran ContamX" << std::endl;
+  if(verbose)
+  {
+    std::cout << "Successfully ran ContamX" << std::endl;
+  }
   //
   // Run SimRead - this will hopefully go away at some point
   //
@@ -381,7 +399,10 @@ int main(int argc, char *argv[])
     std::cout << "Failed to complete SimReadX process." << std::endl;
     return EXIT_FAILURE;
   }
-  std::cout << "Successfully ran SimReadX" << std::endl;
+  if(verbose)
+  {
+    std::cout << "Successfully ran SimReadX" << std::endl;
+  }
   //
   // Read in the results
   //
@@ -419,7 +440,10 @@ int main(int argc, char *argv[])
   }
   // Figure out what surfaces we want results for
   std::vector<openstudio::model::Surface> extSurfaces = filterConcreteModelObjects<openstudio::model::Surface>(*model, attachedExterior);
-  std::cout << "Found " << extSurfaces.size() << " exterior surfaces" << std::endl;
+  if(verbose)
+  {
+    std::cout << "Found " << extSurfaces.size() << " exterior surfaces" << std::endl;
+  }
   // Create the vector of path numbers
   std::vector<int> pathNrs;
   std::map<openstudio::Handle,int> map = translator.surfaceMap();
@@ -431,7 +455,10 @@ int main(int argc, char *argv[])
       pathNrs.push_back(iter->second);
     }
   }
-  std::cout << "Found " << pathNrs.size() << " exterior path numbers" << std::endl;
+  if(verbose)
+  {
+    std::cout << "Found " << pathNrs.size() << " exterior path numbers" << std::endl;
+  }
   // Bail out if an exterior surface doesn't have an associated path
   if(extSurfaces.size() != pathNrs.size())
   {
@@ -449,7 +476,7 @@ int main(int argc, char *argv[])
   int i=0;
   BOOST_FOREACH(openstudio::model::Space space, spaces)
   {
-    ts.push_back(openstudio::TimeSeries(translator.startDateTime().get(),delta,
+    ts.push_back(openstudio::TimeSeries(translator.startDateTime().get().date(),delta,
       openstudio::createVector(std::vector<double>(8760,0.0)),"kg/s"));
     spaceMap[space.handle()] = i;
     i++;
@@ -465,13 +492,6 @@ int main(int argc, char *argv[])
     int spaceIndex = spaceMap[space.get().handle()];
     ts[spaceIndex] = ts[spaceIndex] + infiltration[i];
   }
-
-  //for(unsigned i=0;i<ts.size();i++)
-  //{
-  //  std::cout << ts[i].values().size() << std::endl;
-  //}
-
-  //return EXIT_FAILURE;
 
   if(writeCsv)
   {
@@ -511,7 +531,7 @@ int main(int argc, char *argv[])
     std::map<openstudio::Handle,int>::const_iterator iter = spaceMap.find(space.handle());
     if(iter != spaceMap.end())
     {
-      openstudio::Time delta(0,1); // Do hourly values, but we won't assume 8760
+      // Do hourly values, but we won't assume 8760
       std::vector<double> values;
       for(openstudio::DateTime current=translator.startDateTime().get()+delta; current <= translator.endDateTime().get(); current += delta)
       {
@@ -531,7 +551,7 @@ int main(int argc, char *argv[])
       if(!schedule.setTimeSeries(openstudio::TimeSeries(translator.startDateTime()->date(),delta,openstudio::createVector(values),"")))
       {
         std::cout << "Failed to set time series for schedule." << std::endl;
-        //return EXIT_FAILURE;
+        continue;
       }
       // Make an infiltration object and attach it to the space
       openstudio::model::SpaceInfiltrationDesignFlowRate infObj(*model);
