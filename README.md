@@ -19,7 +19,14 @@ Coming soon
 ## demomodel
 
 Create the simple demo model that is used in some of the OpenStudio testing. It is a pretty simple model with
-four zones, one of which is unconditioned.
+four zones, one of which is unconditioned. The program uses a template OpenStudio model, which can be specified on
+the command line (or a default will be used):
+
+    Usage: demomodel [options]
+    Allowed options:
+      -h [ --help ]            print help message and exit
+      -i [ --input-path ] arg  path to template OSM file
+      -o [ --output-path ] arg path to write OSM file to
 
 ## epw2wth
 
