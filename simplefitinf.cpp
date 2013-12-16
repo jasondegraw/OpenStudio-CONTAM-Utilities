@@ -369,18 +369,20 @@ int main(int argc, char *argv[])
   std::pair <openstudio::Handle,int> handleInt;
   BOOST_FOREACH(handleInt, spaceMap)
   {
+    //std::cout << openstudio::toString(handleInt.first) << " " << handleInt.second << std::endl;
     boost::optional<openstudio::model::Space> space = model->getModelObject<openstudio::model::Space>(handleInt.first);
     if(!space)
     {
       std::cout << "Failed to find space " << openstudio::toString(handleInt.first)<< std::endl;
       return EXIT_FAILURE;
     }
+    int index = handleInt.second-1;
     openstudio::model::SpaceInfiltrationDesignFlowRate infObj(*model);
-    infObj.setDesignFlowRate(density*results[0][handleInt.second]);
+    infObj.setDesignFlowRate(density*results[0][index]);
     infObj.setConstantTermCoefficient(0.0);
     infObj.setTemperatureTermCoefficient(0.0);
-    infObj.setVelocityTermCoefficient(C[handleInt.second]);
-    infObj.setVelocitySquaredTermCoefficient(D[handleInt.second]);
+    infObj.setVelocityTermCoefficient(C[index]);
+    infObj.setVelocitySquaredTermCoefficient(D[index]);
     infObj.setSpace(*space);
   }
 
