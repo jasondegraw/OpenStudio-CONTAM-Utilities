@@ -257,11 +257,11 @@ int main(int argc, char *argv[])
             {
               std::cout << "Failed to correctly load EPW file, weather will be steady state" << std::endl;
             }
-            cx->rc().setWTHpath(openstudio::toString(wthPath));
+            cx->setWTHpath(openstudio::toString(wthPath));
           }
           else if(epwFile = translateEpw(*epwPath,wthPath))
           {
-            cx->rc().setWTHpath(openstudio::toString(wthPath));
+            cx->setWTHpath(openstudio::toString(wthPath));
           }
           else
           {
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
     if(translator.writeCvFile(cvfPath))
     {
       // Need to set the CVF file in the PRJ, this path may need to be made relative. Not too sure
-      cx->rc().setCVFpath(openstudio::toString(cvfPath));
+      cx->setCVFpath(openstudio::toString(cvfPath));
     }
     textStream << openstudio::toQString(cx->toString());
   }
@@ -357,8 +357,8 @@ int main(int argc, char *argv[])
   // Set the default here in case the EpwFile route fails
   openstudio::Time diff = translator.endDateTime().get()-translator.startDateTime().get();
   //std::cout << diff.days()*24 << std::endl;
-  double ssP = QString().fromStdString(cx->rc().ssWeather().Tambt()).toDouble(); // There's a better way to do this
-  double ssT = QString().fromStdString(cx->rc().ssWeather().barpres()).toDouble(); // There's a better way to do this
+  double ssP = cx->ssWeather().Tambt();
+  double ssT = cx->ssWeather().barpres();
   // Try to get the outdoor conditions
   openstudio::TimeSeries seriesP;
   openstudio::TimeSeries seriesT;
@@ -374,6 +374,7 @@ int main(int argc, char *argv[])
       seriesT = optT.get();
     }
   }
+  //std::cout << ssP << " " << ssT << std::endl;
   // Open up a csv file if we need it
   std::ofstream csv;
   if(writeCsv)
@@ -384,6 +385,7 @@ int main(int argc, char *argv[])
       writeCsv = false;
     }
   }
+  std::vector<std::vector<int> > pathIds = cx->zoneExteriorFlowPaths();
   std::vector<openstudio::TimeSeries> infiltration = cx->zoneInfiltration(&sim); // These are in kg/s
   // Create a schedule for each zone
   std::map<openstudio::Handle,int> map = translator.zoneMap();

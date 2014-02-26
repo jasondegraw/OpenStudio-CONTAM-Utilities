@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
         {
           if(translateEpw(*epwPath,wthPath))
           {
-            cx->rc().setWTHpath(openstudio::toString(wthPath));
+            cx->setWTHpath(openstudio::toString(wthPath));
           }
           else
           {
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
     if(translator.writeCvFile(cvfPath))
     {
       // Need to set the CVF file in the PRJ, this path may need to be made relative. Not too sure
-      cx->rc().setCVFpath(openstudio::toString(cvfPath));
+      cx->setCVFpath(openstudio::toString(cvfPath));
     }
     textStream << openstudio::toQString(cx->toString());
   }

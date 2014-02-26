@@ -204,7 +204,8 @@ int main(int argc, char *argv[])
     for(int j=0;j<direction.size();j++)
     {
       // Set the wind speed and direction
-      cx->setSteadyWeather(speed[i],direction[j]);
+      cx->ssWeather().setWindspd(speed[i]);
+      cx->ssWeather().setWinddir(direction[j]);
       QString fileName = QString("temporary-%1-%2.prj").arg(speed[i]).arg(direction[j]);
 
       QFile file(fileName);
