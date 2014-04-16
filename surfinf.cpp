@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
     translator.setExteriorFlowRate(flow,0.65,75.0);
   }
   translator.setTranslateHVAC(false);
-  boost::optional<openstudio::contam::PrjModel> cx = translator.translateModel(model.get());
+  boost::optional<openstudio::contam::IndexModel> cx = translator.translateModel(model.get());
   if(!cx)
   {
      std::cout << "Translation failed, check errors and warnings for more information." << std::endl;
