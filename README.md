@@ -14,7 +14,7 @@ ContamX via the command line.
 
 ## compinf
 
-Coming soon
+Compute an 8760 infiltration schedule and apply it to an OpenStudio model.
 
 ## demomodel
 
