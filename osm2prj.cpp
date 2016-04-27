@@ -18,7 +18,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  **********************************************************************/
 
-#include <contam/ForwardTranslator.hpp>
+#include <airflow/contam/ForwardTranslator.hpp>
 #include <model/Model.hpp>
 #include <model/WeatherFile.hpp>
 #include <osversion/VersionTranslator.hpp>
@@ -60,7 +60,7 @@ boost::optional<openstudio::EpwFile> translateEpw(openstudio::path epwpath, open
   }
   return epw;
 }
-
+/*
 static boost::optional<openstudio::path> findFile(openstudio::path base, std::string filename)
 {
   //boost::filesystem::recursive_directory_iterator(base);
@@ -75,7 +75,7 @@ static boost::optional<openstudio::path> findFile(openstudio::path base, std::st
       return boost::optional<openstudio::path>(filepath);
     }
     // WHY!?!?!
-    boost::filesystem2::path basepath(openstudio::toString(base));
+    boost::filesystem::path basepath(openstudio::toString(base));
     boost::filesystem::directory_iterator iter(basepath);
     boost::filesystem::directory_iterator end;
     for(;iter!=end;++iter)
@@ -89,6 +89,7 @@ static boost::optional<openstudio::path> findFile(openstudio::path base, std::st
   }
   return false;
 }
+*/
 
 int main(int argc, char *argv[])
 {
@@ -160,12 +161,11 @@ int main(int argc, char *argv[])
   // Try to find and connect a results file - this really should be done using the RunManager database,
   // but I don't know how to do that and it can be done right at a later date by someone who knows how
   openstudio::path dir = inputPath.parent_path() / inputPath.stem();
-  boost::optional<openstudio::path> sqlpath = findFile(dir,"eplusout.sql");
-  if(sqlpath)
-  {
-    std::cout<<"Found results file, attaching it to the model."<<std::endl;
-    model->setSqlFile(openstudio::SqlFile(*sqlpath));
-  }
+  //boost::optional<openstudio::path> sqlpath = findFile(dir,"eplusout.sql");
+  //if(sqlpath) {
+    //std::cout<<"Found results file, attaching it to the model."<<std::endl;
+    //model->setSqlFile(openstudio::SqlFile(*sqlpath));
+  //}
 
   openstudio::path prjPath = inputPath.replace_extension(openstudio::toPath("prj").string());
   openstudio::path cvfPath = inputPath.replace_extension(openstudio::toPath("cvf").string());
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
       boost::optional<openstudio::path> path = weatherFile->path();
       if(path)
       {
-        boost::optional<openstudio::path> epwPath = findFile(dir,openstudio::toString(path->string()));
+          boost::optional<openstudio::path> epwPath;// = findFile(dir, openstudio::toString(path->string()));
         if(epwPath)
         {
           if(translateEpw(*epwPath,wthPath))
@@ -239,15 +239,13 @@ int main(int argc, char *argv[])
     }
 
     // Write out a CVF if needed
-    if(translator.writeCvFile(cvfPath))
-    {
+    if(translator.writeCvFile(cvfPath)) {
       // Need to set the CVF file in the PRJ, this path may need to be made relative. Not too sure
       cx->setCVFpath(openstudio::toString(cvfPath));
     }
     textStream << openstudio::toQString(cx->toString());
   }
-  else
-  {
+  else {
     std::cout << "Failed to open file '"<< openstudio::toString(prjPath) << "'." << std::endl;
     std::cout << "Check that this file location is accessible and may be written." << std::endl;
     return EXIT_FAILURE;

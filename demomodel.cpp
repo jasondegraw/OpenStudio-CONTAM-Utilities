@@ -18,7 +18,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  **********************************************************************/
 
-#include <contam/ForwardTranslator.hpp>
+#include <airflow/contam/ForwardTranslator.hpp>
 #include <energyplus/ReverseTranslator.hpp>
 #include <model/Model.hpp>
 #include <model/WeatherFile.hpp>

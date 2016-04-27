@@ -18,8 +18,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  **********************************************************************/
 
-#include <contam/ForwardTranslator.hpp>
-#include <contam/SimFile.hpp>
+#include <airflow/contam/ForwardTranslator.hpp>
+#include <airflow/contam/SimFile.hpp>
 
 #include <model/Model.hpp>
 #include <model/Space.hpp>
